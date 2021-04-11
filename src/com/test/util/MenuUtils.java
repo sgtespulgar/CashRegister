@@ -1,94 +1,154 @@
 package com.test.util;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.TreeMap;
+
+import com.test.dto.CashOnHand;
+
 public class MenuUtils {
 	
-	public void computeTotalFunds(int[] denominationList){
-		int totalFunds = 0;
-		String arrayD = "";
+	public void computeTotalFunds(CashOnHand money){
 		
-		for(int i=0; i<denominationList.length; i++){
-			if(i==0){
-				totalFunds = totalFunds + (denominationList[i] * 20);
-			}else if(i==1){
-				totalFunds = totalFunds + (denominationList[i] * 10);
-			}else if(i==2){
-				totalFunds = totalFunds + (denominationList[i] * 5);
-			}else if(i==3){
-				totalFunds = totalFunds + (denominationList[i] * 2);
-			}else if(i==4){
-				totalFunds = totalFunds + (denominationList[i] * 1);
-			}
-			
-			arrayD = arrayD + " "+denominationList[i];
-		}
+		// sort map by key desc
+		Map<Integer, Integer> sortedMap = new TreeMap<Integer,Integer>(Collections.reverseOrder());
+		sortedMap.putAll(money.getCashMap());
 		
-		System.out.println("$"+totalFunds + arrayD);
-	}
-
-	public int[] deposit(String input, int[] denominationList){
+		String txtTotal = "$"+money.getTotal();
 		
-		String[] inputArray = input.split(" ");
+		for (Map.Entry<Integer,Integer> me : sortedMap.entrySet()) {
+			txtTotal = txtTotal +" " + me.getValue();
+	    }
 		
-		for(int i=0; i<inputArray.length; i++){
-			denominationList[i] = denominationList[i] + Integer.parseInt(inputArray[i]);
-		}
-		
-		return denominationList;
+		System.out.println(txtTotal);
 	}
 	
-	public int[] withdraw(String input, int[] denominationList){
+	public CashOnHand deposit(String input, CashOnHand money) throws Exception{
 		
-		String[] inputArray = input.split(" ");
+		Map<Integer,Integer> inputMap = readInput(input);
+		int key, newVal;
+		int total = 0;
 		
-		for(int i=0; i<inputArray.length; i++){
-			if(denominationList[i] - Integer.parseInt(inputArray[i]) < 0){
-				System.out.println("Invalid amount");
+		for (Map.Entry<Integer,Integer> me : inputMap.entrySet()) {
+	          key = me.getKey();
+	          newVal = money.getCashMap().get(key) + me.getValue();
+	          money.getCashMap().replace(key, newVal);
+	          total = total + (newVal * key); 
+	    }
+		
+		money.setTotal(total);
+		
+		return money;
+	}
+	
+	public CashOnHand withdraw(String input, CashOnHand money){
+		
+		Map<Integer,Integer> inputMap = readInput(input);
+		int key, newVal;
+		int total = 0;
+		
+		for (Map.Entry<Integer,Integer> me : inputMap.entrySet()) {
+	          key = me.getKey();
+	          if(money.getCashMap().get(key) - me.getValue() < 0){
+	        	System.out.println("Invalid amount");
 				break;
-			} else {
-				denominationList[i] = denominationList[i] - Integer.parseInt(inputArray[i]);
-			}
-		}
-		
-		return denominationList;
+	          }else{
+	        	 newVal = money.getCashMap().get(key) - me.getValue();
+	        	 money.getCashMap().replace(key, newVal);
+	        	 total = total + (newVal * key);
+	          }
+	    }
+		money.setTotal(total);
+		return money;
 	}
 	
-	public int[] computeChange(int amount, int denominationList[]) {
-	    
-		int[] array = {20, 10, 5, 2, 1};
-		int[] newArray = {0, 0, 0, 0, 0};
-		int[] denominationListCopy = copyArray(denominationList);
+	public CashOnHand computeChange(int amount, CashOnHand money) {
+		
+		// sort map by key desc
+		Map<Integer, Integer> sortedMap = new TreeMap<Integer,Integer>(Collections.reverseOrder());
+		sortedMap.putAll(money.getCashMap());
+		
+		if(money.getTotal() >= amount){
+			ArrayList<Integer> changeList = getChangeList(sortedMap, amount);
+			Map<Integer,Integer> inputMap = readInput(changeList);
+			int key, newVal;
+			int total = 0;
+			
+			for (Map.Entry<Integer,Integer> me : inputMap.entrySet()) {
+		          key = me.getKey();
+		          if(money.getCashMap().get(key) - me.getValue() < 0){
+		        	System.out.println("Invalid amount");
+					break;
+		          }else{
+		        	 newVal = money.getCashMap().get(key) - me.getValue();
+		        	 money.getCashMap().replace(key, newVal);
+		        	 total = total + (newVal * key);
+		          }
+		    }
+			money.setTotal(total);
+			
+		} else {  // if more than cashOnHand
+			System.out.println("Insufficient funds");
+		}
+		
+		return money;
+	}
+	
+	public ArrayList<Integer> getChangeList(Map<Integer, Integer> map, int amount) {
+		Map<Integer, Integer> tempMap = new TreeMap<Integer, Integer>(Collections.reverseOrder());
+		Iterator it = map.entrySet().iterator();
+		
+		ArrayList<Integer> aList = new ArrayList<Integer>();
+		ArrayList<Integer> denominationList = new ArrayList<Integer>();
+		ArrayList<Integer> changeList = new ArrayList<Integer>();
+		
+		while(it.hasNext()){
+			Map.Entry<Integer, Integer> pair = (Map.Entry) it.next();
+			int key = pair.getKey();
+			int val = pair.getValue();
+			
+			aList.add(key);
+			denominationList.add(val);
+			changeList.add(0);
+		}
 		
 		int index = 0;
 		int prevAmount = amount; //holder
 		int prevIndex = index -1;
 		
 		while(amount > 0){
-			if(index > denominationList.length-1){  //revert
+			if(index > denominationList.size()-1){  //revert
 				
-				if((denominationList[prevIndex] * array[prevIndex]) < amount){
+				if((denominationList.get(prevIndex)* aList.get(prevIndex)) < amount){
 					System.out.print("Sorry!");
 					System.out.println();
 					
-					return denominationListCopy;
+					//return denominationListCopy;
+					break;
 				} else {
 					amount = prevAmount; //revert to previous values
 					index = prevIndex+1;
-					denominationList[prevIndex]++;
-					newArray[prevIndex]--;
+					denominationList.set(prevIndex, denominationList.get(prevIndex)+1);
+					changeList.set(prevIndex, changeList.get(prevIndex)-1);
 				}
 				
-			} else if(amount >= array[index] && denominationList[index] > 0){
+			} else if(amount >= aList.get(index) && denominationList.get(index) > 0){
 				prevAmount = amount;
-				amount = amount - array[index];	
+				amount = amount - aList.get(index);	
 				
 				if(amount < 0)  { //revert to previous values, since we can no longer subtract with current denomination
 					amount = prevAmount;
 					index = prevIndex;
-					denominationList[prevIndex]++;
-					newArray[prevIndex]--;
+					denominationList.set(prevIndex, denominationList.get(prevIndex)+1);
+					changeList.set(prevIndex, changeList.get(prevIndex)-1);
 				} else {
-					newArray[index]++;
-					denominationList[index]--;
+					denominationList.set(index, denominationList.get(index)-1);
+					changeList.set(index, changeList.get(index)+1);
 					prevIndex = index;
 				}
 			} else {
@@ -96,26 +156,64 @@ public class MenuUtils {
 			}
 		}
 		
-		for(int i=0; i<newArray.length; i++){
-			System.out.print(newArray[i] + " ");
+		for(int i=0; i<changeList.size(); i++){
+			System.out.print(changeList.get(i) + " ");
 		}
 		
 		System.out.println();
-		return denominationList;
+		return changeList;
 		
 	}
-	
-	public int[] copyArray(int[] originaArray){
-		int[] copied = new int[originaArray.length];
+
+	public Map<Integer, Integer> readInput(String input){
+		Map<Integer, Integer> inputMap = new TreeMap<>();
 		
-		for (int i = 0; i < originaArray.length; i++){
-			copied[i] = originaArray[i];
+		String[] inputArray = input.split(" ");
+		
+		for(int i=0; i<inputArray.length; i++){
+			if(i == 0){
+				inputMap.put(MenuConst.TWENTY, Integer.parseInt(inputArray[i]));
+			} else if(i == 1){
+				inputMap.put(MenuConst.TEN, Integer.parseInt(inputArray[i]));
+			} else if(i == 2){
+				inputMap.put(MenuConst.FIVE, Integer.parseInt(inputArray[i]));
+			} else if(i == 3){
+				inputMap.put(MenuConst.TWO, Integer.parseInt(inputArray[i]));
+			} else if(i == 4){
+				inputMap.put(MenuConst.ONE, Integer.parseInt(inputArray[i]));
+			} 
 		}
 		
-		return copied;
+		return inputMap;
 	}
 	
+	public Map<Integer, Integer> readInput(ArrayList<Integer> inputArray){
+		Map<Integer, Integer> inputMap = new TreeMap<>();
+		
+		
+		for(int i=0; i<inputArray.size(); i++){
+			if(i == 0){
+				inputMap.put(MenuConst.TWENTY, inputArray.get(i));
+			} else if(i == 1){
+				inputMap.put(MenuConst.TEN, inputArray.get(i));
+			} else if(i == 2){
+				inputMap.put(MenuConst.FIVE, inputArray.get(i));
+			} else if(i == 3){
+				inputMap.put(MenuConst.TWO, inputArray.get(i));
+			} else if(i == 4){
+				inputMap.put(MenuConst.ONE, inputArray.get(i));
+			} 
+		}
+		
+		return inputMap;
+	}
 	
-	
+	public Map<Integer, Integer> sortMap(HashMap<Integer, Integer> unsortedMap){
+		
+		Map<Integer, Integer> sortedMap = new TreeMap<Integer,Integer>(Collections.reverseOrder());
+		sortedMap.putAll(unsortedMap);
+		
+		return unsortedMap;
+	}
 	
 }

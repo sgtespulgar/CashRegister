@@ -1,8 +1,9 @@
-package com.test.model;
+package com.test.main;
 
-import java.util.NoSuchElementException;
 import java.util.Scanner;
 
+import com.test.dto.CashOnHand;
+import com.test.util.MenuConst;
 import com.test.util.MenuUtils;
 
 /**
@@ -12,46 +13,53 @@ import com.test.util.MenuUtils;
 
 public class CashRegister {
 	
-	
 	public static void main(String[] args) {
 		MenuUtils menu = new MenuUtils();
 		Scanner scanner = new Scanner(System.in);
+		
         try {
+        	CashOnHand money = new CashOnHand();
+        	money.initialize();
+        	
         	boolean runRegister = true;
         	int[] denominationList = {0, 0, 0, 0, 0};
         	
         	displayMessage();
             while (runRegister) {
-            	System.out.print("> ");
+            	System.out.print(MenuConst.MENU);
                 String line = scanner.nextLine();
                 
-                if(line.trim().equalsIgnoreCase("exit") || line.trim().toLowerCase() == "exit"){
+                if(MenuConst.QUIT.equalsIgnoreCase(line.trim())){
                 	runRegister = false;
-                	System.out.println("Bye!");
+                	System.out.println(MenuConst.MSG_QUIT);
                 } else {
                 	String[] input = line.split(" ");
                 	
-                	if(input[0].equalsIgnoreCase("show")){
-                		menu.computeTotalFunds(denominationList);
-                	} else if(input[0].equalsIgnoreCase("put")){
+                	if(MenuConst.SHOW.equalsIgnoreCase(input[0])){
+                		menu.computeTotalFunds(money);
+                	} else if(MenuConst.PUT.equalsIgnoreCase(input[0])){
                 		String listString = line.substring(4);                	    
-                		denominationList = menu.deposit(listString, denominationList);
-                		menu.computeTotalFunds(denominationList);
-                	} else if(input[0].equalsIgnoreCase("take")){
+                		
+                		money = menu.deposit(listString, money);
+                		menu.computeTotalFunds(money);
+                	} else if(MenuConst.TAKE.equalsIgnoreCase(input[0])){
                 		String listString = line.substring(5);
-                		denominationList = menu.withdraw(listString, denominationList);
-                		menu.computeTotalFunds(denominationList);
-                	} else if(input[0].equalsIgnoreCase("change")){
+                		
+                		money = menu.withdraw(listString, money);
+                		menu.computeTotalFunds(money);
+                	} else if(MenuConst.CHANGE.equalsIgnoreCase(input[0])){
                 		String listString = line.substring(6);
-                		denominationList = menu.computeChange(Integer.parseInt(listString.trim()), denominationList);
-                	} else if(input[0].equalsIgnoreCase("quit")){
-                		 scanner.close();
+                		//denominationList = menu.computeChange(Integer.parseInt(listString.trim()), denominationList);
+                		money = menu.computeChange(Integer.parseInt(listString.trim()), money);
+                	
+                	} else {
+                		System.out.println(MenuConst.ERR_INVALID_INPUT);
                 	}
                 }
             }
-        } catch(IllegalStateException | NoSuchElementException e) {
-            // System.in has been closed
-        	System.out.println("Bye");
+        } catch(Exception e) {
+        	System.out.println(MenuConst.ERR_GENERAL);
+        	e.printStackTrace();
         } finally{
         	scanner.close();
         }
@@ -67,7 +75,6 @@ public class CashRegister {
         System.out.println("take x x x x x => to withdraw, x corresponds to the number of each denomination");
         System.out.println("denomination order: #$20 #$10 #$5 #$2 #$1");
         System.out.println("***********************************************");
-        
 	}
 	
 }
